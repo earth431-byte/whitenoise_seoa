@@ -164,6 +164,57 @@
 
     .status { text-align: center; font-size: 12px; color: var(--text-muted); letter-spacing: 0.05em; min-height: 18px; transition: color 0.3s; }
     .tip { text-align: center; font-size: 11px; color: var(--text-muted); opacity: 0.5; margin-top: 1.5rem; letter-spacing: 0.05em; line-height: 1.6; }
+
+    /* 긴급 정지 */
+    .emergency-wrap {
+      margin-top: 1.6rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .emergency-btn {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 16px;
+      border: 1.5px solid rgba(220, 60, 60, 0.35);
+      background: rgba(220, 60, 60, 0.07);
+      color: #e05555;
+      font-family: 'Gowun Dodum', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      touch-action: manipulation;
+      -webkit-appearance: none;
+    }
+    .emergency-btn:active {
+      transform: scale(0.97);
+      background: rgba(220, 60, 60, 0.18);
+      border-color: rgba(220, 60, 60, 0.6);
+    }
+    .emergency-btn.fired {
+      background: rgba(220, 60, 60, 0.15);
+      border-color: rgba(220, 60, 60, 0.5);
+      animation: emergencyFlash 0.35s ease;
+    }
+    @keyframes emergencyFlash {
+      0%   { background: rgba(220,60,60,0.35); }
+      100% { background: rgba(220,60,60,0.07); }
+    }
+    .emergency-label { font-size: 11px; color: var(--text-muted); opacity: 0.6; letter-spacing: 0.04em; }
+
+    /* 라이트 모드 긴급 버튼 */
+    [data-theme="light"] .emergency-btn {
+      border-color: rgba(200, 40, 40, 0.3);
+      background: rgba(200, 40, 40, 0.05);
+      color: #c03030;
+    }
   </style>
 </head>
 <body>
@@ -206,6 +257,14 @@
   </div>
   <p class="status" id="status">버튼을 눌러 소리를 재생하세요</p>
   <p class="tip">화면을 켜둔 채로 두세요 🌟<br>소리는 백그라운드에서도 재생돼요</p>
+
+  <div class="emergency-wrap">
+    <button class="emergency-btn" id="emergencyBtn" onclick="emergencyStop()">
+      <span>⏹</span>
+      <span>모든 소리 강제 종료</span>
+    </button>
+    <span class="emergency-label" id="emergencyLabel">소리가 멈추지 않을 때 사용하세요</span>
+  </div>
 </div>
 
 <script>
@@ -574,6 +633,37 @@ document.querySelectorAll('.timer-btn').forEach(btn => {
     if (timerMin > 0 && currentId) startTimer(timerMin);
   });
 });
+
+/* ── 긴급 정지 ── */
+function emergencyStop() {
+  // 1. 일반 정지 먼저
+  stopAll();
+
+  // 2. AudioContext 자체를 닫아버림 (가장 확실한 방법)
+  if (ctx) {
+    try { ctx.close(); } catch(e) {}
+    ctx = null;
+    masterGain = null;
+  }
+
+  // 3. 모든 타이머 한 번 더 정리
+  clearAllTimers();
+
+  // 4. 모든 버튼 active 해제 (혹시 남아있을 경우)
+  document.querySelectorAll('.sound-btn.active').forEach(b => b.classList.remove('active'));
+  document.getElementById('waveWrap').classList.remove('playing');
+  document.getElementById('status').textContent = '버튼을 눌러 소리를 재생하세요';
+
+  // 5. 버튼 피드백
+  const btn = document.getElementById('emergencyBtn');
+  const label = document.getElementById('emergencyLabel');
+  btn.classList.add('fired');
+  label.textContent = '✅ 모든 소리가 종료됐어요';
+  setTimeout(() => {
+    btn.classList.remove('fired');
+    label.textContent = '소리가 멈추지 않을 때 사용하세요';
+  }, 2500);
+}
 
 /* ── 화면 꺼짐 방지 ── */
 async function requestWakeLock() {
