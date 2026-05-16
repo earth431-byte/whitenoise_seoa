@@ -484,8 +484,9 @@ function synthLullaby() {
                      349.23,349.23,329.63,329.63,293.66,293.66,261.63];
   const dur = 0.65;
 
-  // ★ 재생 중 여부 플래그 — stopAll 호출 시 false로 바뀜
   let active = true;
+  // ★ 예약된 음표 오실레이터를 모두 추적
+  const noteOscillators = [];
 
   function playMelody() {
     if (!active || !ctx) return;
@@ -508,10 +509,11 @@ function synthLullaby() {
       g.gain.linearRampToValueAtTime(0, t + dur - 0.02);
       o.start(t); vib.start(t);
       o.stop(t + dur); vib.stop(t + dur);
+      // ★ 예약된 오실레이터 목록에 추가
+      noteOscillators.push(o, vib);
       t += dur;
     });
 
-    // 멜로디 한 사이클 끝나면 반복 — safeTimeout 으로 등록
     const totalMs = noteFreqs.length * dur * 1000 + 1800;
     safeTimeout(() => {
       if (active) playMelody();
@@ -520,8 +522,14 @@ function synthLullaby() {
 
   playMelody();
 
-  // ★ stop 호출 시 active = false → 반복 중단
-  nodes.push({ stop: () => { active = false; } });
+  // ★ stop 시: active 플래그 끄고 + 예약된 음표 전부 즉시 강제 종료
+  nodes.push({
+    stop: () => {
+      active = false;
+      noteOscillators.forEach(o => { try { o.stop(); } catch(e){} });
+      noteOscillators.length = 0;
+    }
+  });
 
   return nodes;
 }
