@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d0d1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="백색소음">
+  <meta name="description" content="신생아 수면을 위한 백색소음 앱">
+  <title>백색소음 🌙</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Serif+KR:wght@300;400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0a0a16;
+      --bg2: #12121f;
+      --bg3: #1a1a2e;
+      --card: #16162a;
+      --card-active: #1e1e38;
+      --border: rgba(255,255,255,0.07);
+      --border-active: rgba(160,140,255,0.4);
+      --text: #e8e6f0;
+      --text-muted: #8884a0;
+      --accent: #a08cff;
+      --accent2: #c4b5fd;
+      --star: rgba(255,255,255,0.6);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      overscroll-behavior: none;
+    }
+
+    body {
+      font-family: 'Gowun Dodum', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* starfield */
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle var(--d, 3s) ease-in-out infinite var(--delay, 0s);
+      opacity: 0;
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0; }
+      50% { opacity: var(--op, 0.5); }
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: calc(var(--safe-top) + 1.5rem) 1.2rem calc(var(--safe-bottom) + 2rem);
+      min-height: 100dvh;
+    }
+
+    /* header */
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .moon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 0.6rem;
+      animation: moonFloat 5s ease-in-out infinite;
+      filter: drop-shadow(0 0 18px rgba(255,220,100,0.4));
+    }
+    @keyframes moonFloat {
+      0%, 100% { transform: translateY(0) rotate(-5deg); }
+      50% { transform: translateY(-8px) rotate(3deg); }
+    }
+    .title {
+      font-family: 'Noto Serif KR', serif;
+      font-weight: 300;
+      font-size: clamp(22px, 6vw, 30px);
+      letter-spacing: 0.2em;
+      color: var(--text);
+      text-shadow: 0 0 30px rgba(160,140,255,0.3);
+    }
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      margin-top: 0.3rem;
+    }
+
+    /* grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 1.4rem;
+    }
+
+    .sound-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.1rem 0.6rem 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      position: relative;
+      overflow: hidden;
+      font-family: 'Gowun Dodum', sans-serif;
+      -webkit-appearance: none;
+      appearance: none;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    .sound-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background: radial-gradient(circle at 50% 0%, rgba(160,140,255,0.08), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .sound-btn:active {
+      transform: scale(0.96);
+    }
+    .sound-btn.active {
+      background: var(--card-active);
+      border-color: var(--border-active);
+      box-shadow: 0 0 24px rgba(160,140,255,0.18), inset 0 0 20px rgba(160,140,255,0.05);
+    }
+    .sound-btn.active::before { opacity: 1; }
+
+    .sound-icon {
+      font-size: clamp(24px, 7vw, 30px);
+      line-height: 1;
+      transition: transform 0.3s ease;
+    }
+    .sound-btn.active .sound-icon {
+      animation: iconPulse 2.5s ease-in-out infinite;
+    }
+    @keyframes iconPulse {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.15); filter: brightness(1.3); }
+    }
+
+    .sound-name {
+      font-size: clamp(12px, 3.5vw, 14px);
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+    .sound-btn.active .sound-name {
+      color: var(--accent2);
+    }
+
+    .sound-desc {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .playing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      opacity: 0;
+      transition: opacity 0.3s;
+      animation: dotBlink 1.5s ease-in-out infinite;
+    }
+    .sound-btn.active .playing-dot { opacity: 1; }
+    @keyframes dotBlink {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    /* controls */
+    .controls {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.2rem 1.3rem;
+      margin-bottom: 1rem;
+    }
+
+    .vol-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+    .vol-icon { font-size: 18px; flex-shrink: 0; }
+    .vol-track { flex: 1; position: relative; }
+    input[type=range] {
+      width: 100%;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(160,140,255,0.5);
+      cursor: pointer;
+    }
+    .vol-val {
+      font-size: 13px;
+      color: var(--accent2);
+      min-width: 36px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* timer */
+    .timer-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .timer-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .timer-options {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+      flex-wrap: wrap;
+    }
+    .timer-btn {
+      font-family: 'Gowun Dodum', sans-serif;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      touch-action: manipulation;
+    }
+    .timer-btn.selected {
+      background: rgba(160,140,255,0.15);
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+    #timerDisplay {
+      font-size: 11px;
+      color: var(--accent);
+      min-width: 50px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* wave visualizer */
+    .wave-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 36px;
+      margin: 0.5rem 0 0.3rem;
+    }
+    .w-bar {
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      opacity: 0.2;
+      height: 4px;
+      transition: height 0.3s;
+    }
+    .playing .w-bar { opacity: 0.7; }
+    .playing .w-bar:nth-child(1)  { animation: wb 1.1s ease-in-out infinite 0.0s; }
+    .playing .w-bar:nth-child(2)  { animation: wb 0.8s ease-in-out infinite 0.1s; }
+    .playing .w-bar:nth-child(3)  { animation: wb 1.3s ease-in-out infinite 0.2s; }
+    .playing .w-bar:nth-child(4)  { animation: wb 0.9s ease-in-out infinite 0.0s; }
+    .playing .w-bar:nth-child(5)  { animation: wb 1.5s ease-in-out infinite 0.3s; }
+    .playing .w-bar:nth-child(6)  { animation: wb 0.7s ease-in-out infinite 0.1s; }
+    .playing .w-bar:nth-child(7)  { animation: wb 1.2s ease-in-out infinite 0.2s; }
+    .playing .w-bar:nth-child(8)  { animation: wb 0.9s ease-in-out infinite 0.0s; }
+    .playing .w-bar:nth-child(9)  { animation: wb 1.0s ease-in-out infinite 0.1s; }
+    .playing .w-bar:nth-child(10) { animation: wb 1.4s ease-in-out infinite 0.3s; }
+    .playing .w-bar:nth-child(11) { animation: wb 0.8s ease-in-out infinite 0.2s; }
+    .playing .w-bar:nth-child(12) { animation: wb 1.1s ease-in-out infinite 0.0s; }
+    @keyframes wb {
+      0%, 100% { height: 4px; }
+      50% { height: 26px; }
+    }
+
+    .status {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      min-height: 18px;
+    }
+
+    /* tip */
+    .tip {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.2);
+      margin-top: 1.5rem;
+      letter-spacing: 0.05em;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="app">
+  <header class="header">
+    <span class="moon">🌙</span>
+    <h1 class="title">백색소음</h1>
+    <p class="subtitle">우리 아기의 포근한 잠자리</p>
+  </header>
+
+  <div class="grid" id="soundGrid"></div>
+
+  <div class="controls">
+    <div class="vol-row">
+      <span class="vol-icon">🔈</span>
+      <div class="vol-track">
+        <input type="range" id="volSlider" min="0" max="100" value="70" step="1">
+      </div>
+      <span class="vol-val" id="volVal">70%</span>
+    </div>
+
+    <div class="timer-row">
+      <span class="timer-label">타이머</span>
+      <div class="timer-options">
+        <button class="timer-btn selected" data-min="0">없음</button>
+        <button class="timer-btn" data-min="15">15분</button>
+        <button class="timer-btn" data-min="30">30분</button>
+        <button class="timer-btn" data-min="60">1시간</button>
+      </div>
+      <span id="timerDisplay"></span>
+    </div>
+  </div>
+
+  <div class="wave-wrap" id="waveWrap">
+    <div class="w-bar"></div><div class="w-bar"></div><div class="w-bar"></div>
+    <div class="w-bar"></div><div class="w-bar"></div><div class="w-bar"></div>
+    <div class="w-bar"></div><div class="w-bar"></div><div class="w-bar"></div>
+    <div class="w-bar"></div><div class="w-bar"></div><div class="w-bar"></div>
+  </div>
+  <p class="status" id="status">버튼을 눌러 소리를 재생하세요</p>
+
+  <p class="tip">화면을 켜둔 채로 두세요 🌟<br>소리는 백그라운드에서도 재생돼요</p>
+</div>
+
+<script>
+/* ── 별 배경 ── */
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 80; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 2 + 0.5;
+  s.style.cssText = `
+    width:${size}px; height:${size}px;
+    left:${Math.random()*100}%; top:${Math.random()*100}%;
+    --d:${2+Math.random()*4}s; --delay:${Math.random()*4}s;
+    --op:${0.3+Math.random()*0.6};
+  `;
+  starsEl.appendChild(s);
+}
+
+/* ── 소리 목록 ── */
+const sounds = [
+  { id:'rain',    icon:'🌧️', name:'빗소리',      desc:'촉촉한 빗줄기',    type:'rain' },
+  { id:'ocean',   icon:'🌊', name:'파도소리',     desc:'잔잔한 해변',      type:'ocean' },
+  { id:'white',   icon:'📻', name:'화이트노이즈',  desc:'순수 백색소음',    type:'white' },
+  { id:'fan',     icon:'🌀', name:'선풍기',       desc:'부드러운 바람',    type:'fan' },
+  { id:'forest',  icon:'🌲', name:'숲속',         desc:'새소리 · 바람',    type:'forest' },
+  { id:'womb',    icon:'🫀', name:'심장박동',     desc:'엄마 뱃속 소리',   type:'womb' },
+  { id:'stream',  icon:'💧', name:'시냇물',       desc:'맑은 물흐름',      type:'stream' },
+  { id:'lullaby', icon:'🎵', name:'자장가',        desc:'포근한 멜로디',    type:'lullaby' },
+  { id:'vacuum',  icon:'🤫', name:'청소기',        desc:'낮고 일정한 소음', type:'vacuum' },
+  { id:'dryer',   icon:'🌪️', name:'건조기',       desc:'둥글게 돌아가는',  type:'dryer' },
+];
+
+/* ── Web Audio ── */
+const AC = window.AudioContext || window.webkitAudioContext;
+let ctx, gainNode, currentSource, currentId;
+let timerMin = 0, timerInterval = null, timerEnd = null;
+
+function initCtx() {
+  if (ctx) return;
+  ctx = new AC();
+  gainNode = ctx.createGain();
+  gainNode.gain.value = 0.7;
+  gainNode.connect(ctx.destination);
+}
+
+function buildBuffer(type) {
+  const sr = ctx.sampleRate;
+  const len = sr * 4;
+  const buf = ctx.createBuffer(1, len, sr);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1);
+
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+
+  const filter = ctx.createBiquadFilter();
+  const gain2 = ctx.createGain();
+  gain2.gain.value = 1;
+
+  switch(type) {
+    case 'white':
+      filter.type = 'allpass';
+      break;
+    case 'rain':
+      filter.type = 'bandpass'; filter.frequency.value = 900; filter.Q.value = 0.4;
+      break;
+    case 'ocean':
+      filter.type = 'lowpass'; filter.frequency.value = 350;
+      // 파도 LFO
+      const lfo = ctx.createOscillator();
+      const lfoG = ctx.createGain();
+      lfo.frequency.value = 0.15;
+      lfoG.gain.value = 0.3;
+      lfo.connect(lfoG); lfoG.connect(gain2.gain);
+      lfo.start();
+      break;
+    case 'fan':
+      filter.type = 'lowpass'; filter.frequency.value = 500;
+      break;
+    case 'forest':
+      filter.type = 'highpass'; filter.frequency.value = 400;
+      break;
+    case 'womb':
+      filter.type = 'lowpass'; filter.frequency.value = 180;
+      gain2.gain.value = 1.4;
+      break;
+    case 'stream':
+      filter.type = 'bandpass'; filter.frequency.value = 1400; filter.Q.value = 0.3;
+      break;
+    case 'lullaby':
+      filter.type = 'bandpass'; filter.frequency.value = 700; filter.Q.value = 0.8;
+      break;
+    case 'vacuum':
+      filter.type = 'lowpass'; filter.frequency.value = 320;
+      gain2.gain.value = 1.2;
+      break;
+    case 'dryer':
+      filter.type = 'lowpass'; filter.frequency.value = 280;
+      break;
+  }
+
+  src.connect(filter);
+  filter.connect(gain2);
+  gain2.connect(gainNode);
+  src.start();
+  return src;
+}
+
+function stopSound() {
+  if (currentSource) { try { currentSource.stop(); } catch(e){} currentSource = null; }
+  if (currentId) {
+    document.querySelector(`[data-id="${currentId}"]`)?.classList.remove('active');
+    currentId = null;
+  }
+  document.getElementById('waveWrap').classList.remove('playing');
+  document.getElementById('status').textContent = '버튼을 눌러 소리를 재생하세요';
+}
+
+function playSound(sound, btn) {
+  initCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  if (currentId === sound.id) { stopSound(); return; }
+  stopSound();
+
+  currentSource = buildBuffer(sound.type);
+  currentId = sound.id;
+  btn.classList.add('active');
+  document.getElementById('waveWrap').classList.add('playing');
+  document.getElementById('status').textContent = `🎵 ${sound.name} 재생 중`;
+
+  if (timerMin > 0) startTimer(timerMin);
+}
+
+/* ── 버튼 생성 ── */
+const grid = document.getElementById('soundGrid');
+sounds.forEach(s => {
+  const btn = document.createElement('button');
+  btn.className = 'sound-btn';
+  btn.dataset.id = s.id;
+  btn.innerHTML = `
+    <span class="sound-icon">${s.icon}</span>
+    <span class="sound-name">${s.name}</span>
+    <span class="sound-desc">${s.desc}</span>
+    <div class="playing-dot"></div>
+  `;
+  btn.addEventListener('click', () => playSound(s, btn));
+  grid.appendChild(btn);
+});
+
+/* ── 볼륨 ── */
+document.getElementById('volSlider').addEventListener('input', e => {
+  const v = e.target.value;
+  document.getElementById('volVal').textContent = v + '%';
+  if (gainNode) gainNode.gain.value = v / 100;
+});
+
+/* ── 타이머 ── */
+function startTimer(min) {
+  clearInterval(timerInterval);
+  timerEnd = Date.now() + min * 60 * 1000;
+  timerInterval = setInterval(() => {
+    const left = timerEnd - Date.now();
+    if (left <= 0) {
+      clearInterval(timerInterval);
+      stopSound();
+      document.getElementById('timerDisplay').textContent = '';
+      return;
+    }
+    const m = Math.floor(left / 60000);
+    const s = Math.floor((left % 60000) / 1000);
+    document.getElementById('timerDisplay').textContent =
+      `${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+
+document.querySelectorAll('.timer-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.timer-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    timerMin = parseInt(btn.dataset.min);
+    clearInterval(timerInterval);
+    document.getElementById('timerDisplay').textContent = '';
+    if (timerMin > 0 && currentId) startTimer(timerMin);
+  });
+});
+
+/* ── 화면 꺼짐 방지 (Wake Lock API) ── */
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) await navigator.wakeLock.request('screen');
+  } catch(e) {}
+}
+requestWakeLock();
+</script>
+</body>
+</html>
